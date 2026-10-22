@@ -5,9 +5,12 @@ credentials for reaching environments, and managed tunnel allocations. After
 bootstrap, clients send application traffic through the environment's tunnel
 hostname; the relay Worker does not proxy their HTTP or WebSocket sessions.
 The one exception is automation webhooks: the relay forwards
-`/v1/hooks/:environmentId/:hookId/:token` to the environment's tunnel so
-senders get a stable URL. It keeps bodies and tokens out of its traces and
-leaves token and signature verification to the environment
+`/v1/hooks/:endpointKey/:hookId/:token` to the environment's tunnel so
+senders get a stable URL. The endpoint key identifies one managed endpoint
+(the hash suffix of its tunnel name), not an environment ID. It keeps webhook
+URLs scoped to a specific user/environment link without exposing the environment
+ID. It keeps bodies and tokens out of its traces and leaves token and signature
+verification to the environment
 ([forwarder](../../infra/relay/src/hooks/HookForwarder.ts)).
 
 By default the forwarder stores nothing. An environment can opt in to having
@@ -124,11 +127,10 @@ cannot reach the relay for ten minutes, the host starts its stored config anyway
 and keeps registering in the background until it can reconcile the origin.
 If the connector exits, or `cloudflared` reports repeated tunnel
 rejections, the host asks the relay for a replacement, at most once every two
-minutes. The relay
-provisions under the same allocation, so the hostname and DNS record survive
-and clients keep their bindings. Every mutation on an allocation bumps its
-`generation`, and deletion locks the row at the generation it claimed, so a
-host that reconnects mid-sweep wins.
+minutes. The relay provisions under the same allocation, so the hostname and DNS
+record survive and clients keep their bindings. Every mutation on an allocation
+bumps its `generation`, and deletion locks the row at the generation it claimed,
+so a host that reconnects mid-sweep wins.
 
 ## The relay client follows the server's pin
 
